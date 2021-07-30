@@ -1,4 +1,4 @@
-module github.com/IHaveNothingg/hawkgo
+module github.com/juiced-aio/hawk-go
 
 go 1.16
 
