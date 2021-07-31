@@ -33,55 +33,55 @@ func Init(client http.Client, key string, debug bool) (scraper Scraper) {
 	scraper.AuthParams["auth"] = scraper.Key
 
 	scraper.InitHeaders = http.Header{
-		"Connection":         {"keep-alive"},
+		"connection":         {"keep-alive"},
 		"sec-ch-ua":          {`" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"`},
 		"sec-ch-ua-mobile":   {"?0"},
-		"User-Agent":         {""},
-		"Accept":             {"*/*"},
-		"Sec-Fetch-Site":     {"same-origin"},
-		"Sec-Fetch-Mode":     {"no-cors"},
-		"Sec-Fetch-Dest":     {"script"},
-		"Referer":            {"https://www.referer.com/"},
-		"Accept-Encoding":    {"gzip, deflate, br"},
-		"Accept-Language":    {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
-		http.HeaderOrderKey:  {"Connection", "sec-ch-ua", "sec-ch-ua-mobile", "User-Agent", "Accept", "Sec-Fetch-Site", "Sec-Fetch-Mode", "Sec-Fetch-Dest", "Referer", "Accept-Encoding", "Accept-Language"},
+		"user-agent":         {""},
+		"accept":             {"*/*"},
+		"sec-fetch-site":     {"same-origin"},
+		"sec-fetch-mode":     {"no-cors"},
+		"sec-fetch-dest":     {"script"},
+		"referer":            {"https://www.referer.com/"},
+		"accept-encoding":    {"gzip, deflate, br"},
+		"accept-Language":    {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
+		http.HeaderOrderKey:  {"connection", "sec-ch-ua", "sec-ch-ua-mobile", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-Language"},
 		http.PHeaderOrderKey: {":method", ":path", ":authority", ":scheme"},
 	}
 	scraper.ChallengeHeaders = http.Header{
-		"Connection":         {"keep-alive"},
+		"connection":         {"keep-alive"},
 		"sec-ch-ua":          {`" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"`},
 		"sec-ch-ua-mobile":   {"?0"},
-		"User-Agent":         {""},
-		"CF-Challenge":       {"b6245c8f8a8cb25"},
-		"Content-Type":       {"application/x-www-form-urlencoded"},
-		"Accept":             {"*/*"},
-		"Origin":             {"https://www.origin.com"},
-		"Sec-Fetch-Site":     {"same-origin"},
-		"Sec-Fetch-Mode":     {"cors"},
-		"Sec-Fetch-Dest":     {"empty"},
-		"Referer":            {"https://www.referer.com/"},
-		"Accept-Encoding":    {"gzip, deflate, br"},
-		"Accept-Language":    {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
-		http.HeaderOrderKey:  {"Connection", "sec-ch-ua", "sec-ch-ua-mobile", "User-Agent", "CF-Challenge", "Content-Type", "Accept", "Origin", "Sec-Fetch-Site", "Sec-Fetch-Mode", "Sec-Fetch-Dest", "Referer", "Accept-Encoding", "Accept-Language"},
+		"user-agent":         {""},
+		"cf-challenge":       {"b6245c8f8a8cb25"},
+		"content-type":       {"application/x-www-form-urlencoded"},
+		"accept":             {"*/*"},
+		"origin":             {"https://www.origin.com"},
+		"sec-fetch-site":     {"same-origin"},
+		"sec-fetch-mode":     {"cors"},
+		"sec-fetch-dest":     {"empty"},
+		"referer":            {"https://www.referer.com/"},
+		"accept-encoding":    {"gzip, deflate, br"},
+		"accept-Language":    {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
+		http.HeaderOrderKey:  {"connection", "sec-ch-ua", "sec-ch-ua-mobile", "user-agent", "cf-challenge", "content-type", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-Language"},
 		http.PHeaderOrderKey: {":method", ":path", ":authority", ":scheme"},
 	}
 	scraper.SubmitHeaders = http.Header{
-		"Connection":                {"keep-alive"},
-		"Cache-Control":             {"max-age=0"},
+		"connection":                {"keep-alive"},
+		"cache-control":             {"max-age=0"},
 		"sec-ch-ua":                 {`" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"`},
 		"sec-ch-ua-mobile":          {"?0"},
-		"Upgrade-Insecure-Requests": {"1"},
-		"Origin":                    {"https://www.origin.com"},
-		"Content-Type":              {"application/x-www-form-urlencoded"},
-		"User-Agent":                {""},
-		"Accept":                    {"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"},
-		"Sec-Fetch-Site":            {"same-origin"},
-		"Sec-Fetch-Mode":            {"navigate"},
-		"Sec-Fetch-Dest":            {"document"},
-		"Referer":                   {"https://www.referer.com/"},
-		"Accept-Encoding":           {"gzip, deflate, br"},
-		"Accept-Language":           {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
-		http.HeaderOrderKey:         {"Connection", "Cache-Control", "sec-ch-ua", "sec-ch-ua-mobile", "Upgrade-Insecure-Requests", "Origin", "Content-Type", "User-Agent", "Accept", "Sec-Fetch-Site", "Sec-Fetch-Mode", "Sec-Fetch-Dest", "Referer", "Accept-Encoding", "Accept-Language"},
+		"upgrade-insecure-requests": {"1"},
+		"origin":                    {"https://www.origin.com"},
+		"content-type":              {"application/x-www-form-urlencoded"},
+		"user-agent":                {""},
+		"accept":                    {"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"},
+		"sec-fetch-site":            {"same-origin"},
+		"sec-fetch-mode":            {"navigate"},
+		"sec-fetch-dest":            {"document"},
+		"referer":                   {"https://www.referer.com/"},
+		"accept-encoding":           {"gzip, deflate, br"},
+		"accept-Language":           {"de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"},
+		http.HeaderOrderKey:         {"connection", "cache-control", "sec-ch-ua", "sec-ch-ua-mobile", "upgrade-insecure-requests", "origin", "content-type", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-Language"},
 		http.PHeaderOrderKey:        {":method", ":path", ":authority", ":scheme"},
 	}
 
@@ -89,6 +89,9 @@ func Init(client http.Client, key string, debug bool) (scraper Scraper) {
 }
 
 func (scraper *Scraper) Injection(response *http.Response, err error) (*http.Response, error) {
+	if err != nil {
+		return response, err
+	}
 	var challengePresent bool
 	if IsNewIUAMChallenge(response) {
 		challengePresent = true
@@ -102,7 +105,7 @@ func (scraper *Scraper) Injection(response *http.Response, err error) (*http.Res
 		scraper.StartTime = time.Now()
 		return scraper.Solve()
 	}
-	return scraper.OriginalRequest, nil
+	return response, nil
 }
 
 func (scraper *Scraper) Solve() (*http.Response, error) {
@@ -135,7 +138,8 @@ func (scraper *Scraper) Solve() (*http.Response, error) {
 					continue
 				}
 				req.Header = scraper.InitHeaders
-				req.Header.Set("Referer", scraper.OriginalRequest.Request.URL.String())
+				req.Header["referer"] = []string{scraper.OriginalRequest.Request.URL.String()}
+				req.Header["user-agent"] = []string{scraper.OriginalRequest.Request.UserAgent()}
 				resp, err := scraper.Client.Do(req)
 				if err != nil {
 					scraper.HandleLoopError(errFormat, err)
@@ -149,8 +153,9 @@ func (scraper *Scraper) Solve() (*http.Response, error) {
 			log.Println("Loaded init script.")
 		}
 		scraper.SolveRetries = 0
+
+		return scraper.ChallengeInitiationPayload()
 	}
-	return scraper.OriginalRequest, nil
 }
 
 func (scraper *Scraper) ChallengeInitiationPayload() (*http.Response, error) {
@@ -210,7 +215,7 @@ func (scraper *Scraper) ChallengeInitiationPayload() (*http.Response, error) {
 				continue
 			}
 			payload, err := json.Marshal(map[string]string{
-				"body":    base64.RawStdEncoding.EncodeToString(body),
+				"body":    base64.StdEncoding.EncodeToString(body),
 				"url":     urlPart,
 				"domain":  scraper.Domain,
 				"captcha": fmt.Sprint(scraper.Captcha),
@@ -267,7 +272,7 @@ func (scraper *Scraper) InitiateCloudflare() (*http.Response, error) {
 			if scraper.KeyStrUriSafe == "" {
 				return scraper.OriginalRequest, errors.New("KeyUri cannot be None.")
 			} else {
-				resultDecoded, err := base64.RawStdEncoding.DecodeString(scraper.Result)
+				resultDecoded, err := base64.StdEncoding.DecodeString(scraper.Result)
 				if err != nil {
 					scraper.HandleLoopError(errFormat, err)
 					continue
@@ -286,9 +291,10 @@ func (scraper *Scraper) InitiateCloudflare() (*http.Response, error) {
 				}
 				req.Header = scraper.ChallengeHeaders
 				initURLSplit := strings.Split(scraper.InitURL, "/")
-				req.Header.Set("CF-Challenge", initURLSplit[len(initURLSplit)-1])
-				req.Header.Set("Referer", strings.Split(scraper.OriginalRequest.Request.URL.String(), "?")[0])
-				req.Header.Set("Origin", "https://"+scraper.Domain)
+				req.Header["cf-challenge"] = []string{initURLSplit[len(initURLSplit)-1]}
+				req.Header["referer"] = []string{strings.Split(scraper.OriginalRequest.Request.URL.String(), "?")[0]}
+				req.Header["origin"] = []string{"https://" + scraper.Domain}
+				req.Header["user-agent"] = []string{scraper.OriginalRequest.Request.UserAgent()}
 				scraper.ChallengePayload, err = scraper.Client.Do(req)
 				if err != nil {
 					scraper.HandleLoopError(errFormat, err)
@@ -311,7 +317,7 @@ func (scraper *Scraper) InitiateCloudflare() (*http.Response, error) {
 func (scraper *Scraper) SolvePayload() (*http.Response, error) {
 	// Fetches main challenge payload from hawk api
 
-	errFormat := "Paload error: %v"
+	errFormat := "Payload error: %v"
 	scraper.FetchingChallengeRetries = 0
 	scraper.FetchingChallengeMaxRetries = 5
 
@@ -386,7 +392,7 @@ func (scraper *Scraper) SendMainPayload() (*http.Response, error) {
 		} else {
 			scraper.SubmitChallengeRetries++
 
-			resultDecoded, err := base64.RawStdEncoding.DecodeString(scraper.Result)
+			resultDecoded, err := base64.StdEncoding.DecodeString(scraper.Result)
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
 				continue
@@ -406,9 +412,10 @@ func (scraper *Scraper) SendMainPayload() (*http.Response, error) {
 			}
 			req.Header = scraper.ChallengeHeaders
 			initURLSplit := strings.Split(scraper.InitURL, "/")
-			req.Header.Set("CF-Challenge", initURLSplit[len(initURLSplit)-1])
-			req.Header.Set("Referer", strings.Split(scraper.OriginalRequest.Request.URL.String(), "?")[0])
-			req.Header.Set("Origin", "https://"+scraper.Domain)
+			req.Header["cf-challenge"] = []string{initURLSplit[len(initURLSplit)-1]}
+			req.Header["referer"] = []string{strings.Split(scraper.OriginalRequest.Request.URL.String(), "?")[0]}
+			req.Header["origin"] = []string{"https://" + scraper.Domain}
+			req.Header["user-agent"] = []string{scraper.OriginalRequest.Request.UserAgent()}
 			scraper.MainPayloadResponse, err = scraper.Client.Do(req)
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
@@ -420,6 +427,8 @@ func (scraper *Scraper) SendMainPayload() (*http.Response, error) {
 			if scraper.Debug {
 				log.Println("Submitted challenge.")
 			}
+
+			return scraper.GetChallengeResult()
 		}
 
 	}
@@ -533,8 +542,9 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 				continue
 			}
 			req.Header = scraper.SubmitHeaders
-			req.Header.Set("referer", scraper.OriginalRequest.Request.URL.String())
-			req.Header.Set("origin", "https://"+scraper.Domain)
+			req.Header["referer"] = []string{scraper.OriginalRequest.Request.URL.String()}
+			req.Header["origin"] = []string{"https://" + scraper.Domain}
+			req.Header["user-agent"] = []string{scraper.OriginalRequest.Request.UserAgent()}
 
 			if (time.Now().Unix() - scraper.StartTime.Unix()) < 5 {
 				// Waiting X amount of sec for CF delay
