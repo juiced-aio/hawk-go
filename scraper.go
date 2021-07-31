@@ -29,6 +29,7 @@ func Init(client http.Client, key string, debug bool) (scraper Scraper) {
 	scraper.Client = client
 	scraper.Debug = debug
 	scraper.Key = key
+	scraper.AuthParams = make(map[string]string)
 	scraper.AuthParams["auth"] = scraper.Key
 
 	scraper.InitHeaders = http.Header{
