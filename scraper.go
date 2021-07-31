@@ -341,6 +341,10 @@ func (scraper *Scraper) SolvePayload() (*http.Response, error) {
 				"url":         scraper.InitURL,
 				"ua":          scraper.OriginalRequest.Request.UserAgent(),
 			})
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
 
 			cc, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/p2", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
 			if err != nil {
@@ -475,7 +479,7 @@ func (scraper *Scraper) HandleFinalApi() (*http.Response, error) {
 
 	if scraper.FinalApi.Status == "rerun" {
 		// TODO: HandleRerun()
-		//return scraper.HandleRerun()
+		return scraper.HandleRerun()
 	}
 	if scraper.FinalApi.Captcha {
 		if !scraper.Captcha {
@@ -556,6 +560,146 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 
 			return final, err
 		}
+	}
+}
+
+func (scraper *Scraper) HandleRerun() (*http.Response, error) {
+	// Handling rerun
+
+	errFormat := "Fetching rerun challenge payload error: %v"
+	scraper.RerunRetries = 0
+	scraper.RerunMaxRetries = 5
+	for {
+		if scraper.Debug {
+			log.Printf("Handling rerun. (%v/%v)", scraper.RerunRetries, scraper.RerunMaxRetries)
+		}
+		if scraper.RerunRetries == scraper.RerunMaxRetries {
+			return scraper.OriginalRequest, fmt.Errorf("Rerun failed after %v retries.", scraper.RerunMaxRetries)
+		} else {
+			scraper.RerunRetries++
+
+			originalRequestBody, err := ReadAndCopyBody(scraper.OriginalRequest)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			mainPayloadBody, err := ReadAndCopyBody(scraper.MainPayloadResponse)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			payload, err := json.Marshal(map[string]interface{}{
+				"body_home":   base64.RawURLEncoding.EncodeToString(originalRequestBody),
+				"body_sensor": base64.RawURLEncoding.EncodeToString(mainPayloadBody),
+				"result":      scraper.BaseObj,
+				"ts":          scraper.TS,
+				"url":         scraper.InitURL,
+				"rerun":       true,
+				"rerun_base":  scraper.Result,
+			})
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			alternative, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/p2", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			var handleRerunResponse apiResponse
+			err = ReadAndUnmarshalBody(alternative.Body, &handleRerunResponse)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			scraper.Result = handleRerunResponse.Result
+
+			scraper.RerunRetries = 0
+
+			if scraper.Debug {
+				log.Println("Handled rerun.")
+			}
+
+			return scraper.SendMainPayload()
+		}
+
+	}
+}
+
+// In Progress
+func (scraper *Scraper) HandleCaptcha() (*http.Response, error) {
+	/* Handling captcha
+	   Note that this function is designed to work with cloudscraper,
+	   if you are building your own flow you will need to rework this part a bit.
+	*/
+
+	errFormat := "First captcha API call error: %v"
+	scraper.CaptchaRetries = 0
+	scraper.CaptchaMaxRetries = 5
+	for {
+		if scraper.Debug {
+			log.Printf("Handling captcha. (%v/%v)", scraper.CaptchaRetries, scraper.CaptchaMaxRetries)
+		}
+		if scraper.CaptchaRetries == scraper.CaptchaMaxRetries {
+			return scraper.OriginalRequest, fmt.Errorf("Handling captcha failed after %v retries.", scraper.CaptchaMaxRetries)
+		} else {
+			scraper.CaptchaRetries++
+			var token string
+			if scraper.FinalApi.Click {
+				token = "click"
+			} else {
+				if scraper.Debug {
+					log.Println("Captcha needed, requesting token.")
+				}
+				token = token
+			}
+			originalRequestBody, err := ReadAndCopyBody(scraper.OriginalRequest)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			mainPayloadBody, err := ReadAndCopyBody(scraper.MainPayloadResponse)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			payload, err := json.Marshal(map[string]interface{}{
+				"body_home":   base64.RawURLEncoding.EncodeToString(originalRequestBody),
+				"body_sensor": base64.RawURLEncoding.EncodeToString(mainPayloadBody),
+				"result":      scraper.BaseObj,
+				"ts":          scraper.TS,
+				"url":         scraper.InitURL,
+				"rerun":       true,
+				"rerun_base":  scraper.Result,
+			})
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			alternative, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/p2", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			var handleRerunResponse apiResponse
+			err = ReadAndUnmarshalBody(alternative.Body, &handleRerunResponse)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			scraper.Result = handleRerunResponse.Result
+
+			scraper.RerunRetries = 0
+
+			if scraper.Debug {
+				log.Println("Handled rerun.")
+			}
+
+			return scraper.SendMainPayload()
+		}
+
 	}
 }
 

@@ -53,6 +53,10 @@ type Scraper struct {
 	FinalApi                       apiResponse
 	SubmitFinalChallengeRetries    int
 	SubmitFinalChallengeMaxRetries int
+	RerunRetries                   int
+	RerunMaxRetries                int
+	CaptchaRetries                 int
+	CaptchaMaxRetries              int
 }
 
 type apiResponse struct {
@@ -70,4 +74,6 @@ type apiResponse struct {
 	JschlVc      string `json:"jschl_vc"`
 	JschlAnswer  string `json:"jschl_answer"`
 	CfChCpReturn string `json:"cf_ch_cp_return"`
+	SiteKey      string `json:"sitekey"`
+	Click        bool   `json:"click"`
 }
