@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anaskhan96/soup"
 	http "github.com/useflyent/fhttp"
 )
 
@@ -44,6 +45,20 @@ func CreateParams(paramsLong map[string]string) string {
 	return params.Encode()
 }
 
+func CheckForCaptcha(body string) bool {
+	doc := soup.HTMLParse(body)
+
+	element := doc.Find("input", "name", "cf_captcha_kind")
+	if element.Error != nil {
+		return false
+	}
+	if val, ok := element.Attrs()["value"]; ok && val == "h" {
+		return true
+	}
+
+	return false
+}
+
 func IsNewIUAMChallenge(response *http.Response) bool {
 	body, err := ReadAndCopyBody(response)
 	if err != nil {
@@ -75,6 +90,24 @@ func IsFingerprintChallenge(response *http.Response) bool {
 
 	}
 	return false
+}
+
+func IsNewCaptchaChallenge(response *http.Response) bool {
+	body, err := ReadAndCopyBody(response)
+	if err != nil {
+		return false
+	}
+	firstReg, err := regexp.MatchString(`cpo.src\s*=\s*"/cdn-cgi/challenge-platform/?\w?/?\w?/orchestrate/.*/v1`, string(body))
+	if err != nil {
+		return false
+	}
+	secondReg, err := regexp.MatchString(`window._cf_chl_opt`, string(body))
+	if err != nil {
+		return false
+	}
+	return strings.Contains(response.Header.Get("Server"), "cloudflare") &&
+		(response.StatusCode == 403) &&
+		firstReg && secondReg
 }
 
 func (scraper *Scraper) HandleLoopError(errFormat string, err error) {

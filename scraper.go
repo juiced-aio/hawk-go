@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"regexp"
 	"strings"
@@ -90,6 +91,8 @@ func (scraper *Scraper) Injection(response *http.Response, err error) (*http.Res
 	var challengePresent bool
 	if IsNewIUAMChallenge(response) {
 		challengePresent = true
+	} else if IsNewCaptchaChallenge(response) {
+		scraper.Captcha = true
 	} else if IsFingerprintChallenge(response) {
 		scraper.FingerprintChallenge = true
 		challengePresent = true
@@ -110,6 +113,10 @@ func (scraper *Scraper) Solve() (*http.Response, error) {
 		// Loading init script
 		scraper.SolveRetries = 0
 		scraper.SolveMaxRetries = 5
+
+		if scraper.Captcha && scraper.CaptchaFunction == nil {
+			return scraper.OriginalRequest, errors.New("captcha is present with nil CaptchaFunction")
+		}
 		for {
 			if scraper.Debug {
 				log.Printf("Solving Challenge. (%v/%v)", scraper.SolveRetries, scraper.SolveMaxRetries)
@@ -483,19 +490,17 @@ func (scraper *Scraper) HandleFinalApi() (*http.Response, error) {
 	// Handle final API result and rerun if needed
 
 	if scraper.FinalApi.Status == "rerun" {
-		// TODO: HandleRerun()
 		return scraper.HandleRerun()
 	}
 	if scraper.FinalApi.Captcha {
 		if !scraper.Captcha {
 			return scraper.OriginalRequest, errors.New("Cf returned captcha and captcha handling is disabled")
 		} else {
-			// TODO: HandleCaptcha()
-			//return scraper.HandleCaptcha()
+			return scraper.HandleCaptcha()
 		}
-
+	} else {
+		return scraper.SubmitChallenge()
 	}
-	return scraper.SubmitChallenge()
 
 }
 
@@ -522,6 +527,7 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 				"cf_ch_verify": "plat",
 			}
 
+			// cf added a new flow where they present a 503 followed up by a 403 captcha
 			if scraper.FinalApi.CfChCpReturn != "" {
 				payloadMap["cf_ch_cp_return"] = scraper.FinalApi.CfChCpReturn
 			}
@@ -561,7 +567,31 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 			}
 
 			if final.StatusCode == 403 {
-				// TODO: Deal with captcha
+				body, err := ReadAndCopyBody(final)
+				if err != nil {
+					scraper.HandleLoopError(errFormat, err)
+					continue
+				}
+				if CheckForCaptcha(string(body)) {
+					// as this was a 403 post we need to get again dont ask why just do it
+					req, err := http.NewRequest("GET", scraper.OriginalRequest.Request.URL.String(), nil)
+					if err != nil {
+						scraper.HandleLoopError(errFormat, err)
+						continue
+					}
+					req.Header = scraper.OriginalRequest.Request.Header
+					weirdGetReq, err := scraper.Client.Do(req)
+					if err != nil {
+						scraper.HandleLoopError(errFormat, err)
+						continue
+					}
+					newScraper := Init(scraper.Client, scraper.Key, scraper.Debug)
+					newScraper.Captcha = true
+					newScraper.OriginalRequest = weirdGetReq
+					newScraper.Domain = scraper.OriginalRequest.Request.URL.Host
+					newScraper.StartTime = time.Now()
+					return newScraper.Solve()
+				}
 			}
 
 			return final, err
@@ -652,60 +682,190 @@ func (scraper *Scraper) HandleCaptcha() (*http.Response, error) {
 		} else {
 			scraper.CaptchaRetries++
 			var token string
+			var err error
 			if scraper.FinalApi.Click {
 				token = "click"
 			} else {
+				errFormat := "Failed to get captcha token from cap function: %v"
 				if scraper.Debug {
 					log.Println("Captcha needed, requesting token.")
 				}
-				token = token
+				token, err = scraper.CaptchaFunction(scraper.OriginalRequest.Request.URL.String(), scraper.FinalApi.SiteKey)
+				if err != nil {
+					scraper.HandleLoopError(errFormat, err)
+					continue
+				}
 			}
-			originalRequestBody, err := ReadAndCopyBody(scraper.OriginalRequest)
-			if err != nil {
-				scraper.HandleLoopError(errFormat, err)
-				continue
-			}
-			mainPayloadBody, err := ReadAndCopyBody(scraper.MainPayloadResponse)
-			if err != nil {
-				scraper.HandleLoopError(errFormat, err)
-				continue
-			}
+
 			payload, err := json.Marshal(map[string]interface{}{
-				"body_home":   base64.RawURLEncoding.EncodeToString(originalRequestBody),
-				"body_sensor": base64.RawURLEncoding.EncodeToString(mainPayloadBody),
-				"result":      scraper.BaseObj,
-				"ts":          scraper.TS,
-				"url":         scraper.InitURL,
-				"rerun":       true,
-				"rerun_base":  scraper.Result,
+				"result":             scraper.Result,
+				"token":              token,
+				"h-captcha-response": token,
+				"data":               scraper.FinalApi.Result,
 			})
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
 
-			alternative, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/p2", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
+			ff, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/cap1", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
-			var handleRerunResponse apiResponse
-			err = ReadAndUnmarshalBody(alternative.Body, &handleRerunResponse)
+			var handleCaptchaResponse apiResponse
+			err = ReadAndUnmarshalBody(ff.Body, &handleCaptchaResponse)
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
-			scraper.Result = handleRerunResponse.Result
+			scraper.FirstCaptchaResult = handleCaptchaResponse
 
-			scraper.RerunRetries = 0
-
-			if scraper.Debug {
-				log.Println("Handled rerun.")
+			errFormat = "Posting to cloudflare challenge endpoint error: %v"
+			resultDecoded, err := base64.StdEncoding.DecodeString(scraper.FirstCaptchaResult.Result)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
 			}
 
-			return scraper.SendMainPayload()
+			payload = []byte(CreateParams(map[string]string{
+				scraper.Name: lz.Compress(string(resultDecoded), scraper.KeyStrUriSafe),
+			}))
+
+			req, err := http.NewRequest("POST", scraper.InitURL, bytes.NewBuffer(payload))
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			req.Header = scraper.ChallengeHeaders
+			initURLSplit := strings.Split(scraper.InitURL, "/")
+			req.Header["cf-challenge"] = []string{initURLSplit[len(initURLSplit)-1]}
+			req.Header["referer"] = []string{strings.Split(scraper.OriginalRequest.Request.URL.String(), "?")[0]}
+			req.Header["origin"] = []string{"https://" + scraper.Domain}
+			req.Header["user-agent"] = scraper.OriginalRequest.Request.Header["user-agent"]
+
+			gg, err := scraper.Client.Do(req)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			errFormat = "Second captcha API call error: %v"
+
+			body, err := ioutil.ReadAll(gg.Body)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			payload, err = json.Marshal(map[string]interface{}{
+				"body_sensor": base64.StdEncoding.EncodeToString(body),
+				"result":      scraper.BaseObj,
+			})
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			hh, err := scraper.Client.Post(fmt.Sprintf("https://%v/cf-a/ov1/cap2", scraper.ApiDomain)+"?"+CreateParams(scraper.AuthParams), "application/json", bytes.NewBuffer(payload))
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			handleCaptchaResponse = apiResponse{}
+			err = ReadAndUnmarshalBody(hh.Body, &handleCaptchaResponse)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			scraper.CaptchaResponseAPI = handleCaptchaResponse
+
+			scraper.CaptchaRetries = 0
+
+			if scraper.CaptchaResponseAPI.Valid {
+				if scraper.Debug {
+					log.Println("Captcha is accepted.")
+				}
+				return scraper.SubmitCaptcha()
+			} else {
+				return scraper.OriginalRequest, errors.New("Captcha was not accepted - most likly wrong token")
+			}
+
 		}
 
+	}
+}
+
+func (scraper *Scraper) SubmitCaptcha() (*http.Response, error) {
+	// Submits the challenge + captcha and trys to access target url
+
+	errFormat := "Submitting captcha challenge error: %v"
+	scraper.SubmitCaptchaRetries = 0
+	scraper.SubmitCaptchaMaxRetries = 5
+	for {
+		if scraper.Debug {
+			log.Printf("Submitting captcha challenge. (%v/%v)", scraper.SubmitCaptchaRetries, scraper.SubmitCaptchaMaxRetries)
+		}
+		if scraper.SubmitCaptchaRetries == scraper.SubmitCaptchaMaxRetries {
+			return scraper.OriginalRequest, fmt.Errorf("Submitting captcha challenge failed after %v retries.", scraper.SubmitFinalChallengeMaxRetries)
+		} else {
+			scraper.SubmitCaptchaRetries++
+
+			payloadMap := map[string]string{
+				"r":               scraper.RequestR,
+				"cf_captcha_kind": "h",
+				"vc":              scraper.RequestPass,
+				"captcha_vc":      scraper.CaptchaResponseAPI.JschlVc,
+				"captcha_answer":  scraper.CaptchaResponseAPI.JschlAnswer,
+				"cf_ch_verify":    "plat",
+			}
+
+			if scraper.CaptchaResponseAPI.CfChCpReturn != "" {
+				payloadMap["cf_ch_cp_return"] = scraper.CaptchaResponseAPI.CfChCpReturn
+			}
+
+			if scraper.Md != "" {
+				payloadMap["md"] = scraper.Md
+			}
+
+			// "captchka" Spelling mistake?
+			payloadMap["h-captcha-response"] = "captchka"
+
+			payload := CreateParams(payloadMap)
+
+			req, err := http.NewRequest("POST", scraper.RequestURL, bytes.NewBufferString(payload))
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+			req.Header = scraper.SubmitHeaders
+			req.Header["referer"] = []string{scraper.OriginalRequest.Request.URL.String()}
+			req.Header["origin"] = []string{"https://" + scraper.Domain}
+			req.Header["user-agent"] = scraper.OriginalRequest.Request.Header["user-agent"]
+
+			if (time.Now().Unix() - scraper.StartTime.Unix()) < 5 {
+				// Waiting X amount of sec for CF delay
+				if scraper.Debug {
+					log.Printf("Sleeping %v sec for cf delay", 5-(time.Now().Unix()-scraper.StartTime.Unix()))
+				}
+				time.Sleep(time.Duration(5-(time.Now().Unix()-scraper.StartTime.Unix())) * time.Second)
+			}
+			final, err := scraper.Client.Do(req)
+			if err != nil {
+				scraper.HandleLoopError(errFormat, err)
+				continue
+			}
+
+			scraper.SubmitCaptchaRetries = 0
+
+			if scraper.Debug {
+				log.Println("Submitted captcha challange.")
+			}
+
+			return final, err
+		}
 	}
 }
 
