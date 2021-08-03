@@ -52,3 +52,5 @@ resp, err := scraper.Do(req)
 All of the logic is based off of HawkAPIs cloudscraper.
 
 Thanks to [zMrKrabz](https://github.com/zMrKrabz) for [fhttp](https://github.com/useflyent/fhttp)
+
+For most questions I'd make a ticket in HawkAPI's discord server but if needed my discord is `Humphreyyyy#0088`.
