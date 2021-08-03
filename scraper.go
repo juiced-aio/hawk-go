@@ -63,10 +63,8 @@ func Init(client http.Client, key string, debug bool) (scraper Scraper) {
 		http.PHeaderOrderKey: {":method", ":authority", ":scheme", ":path"},
 	}
 	scraper.SubmitHeaders = http.Header{
-		"connection":                {"keep-alive"},
+		"pragma":                    {"no-cache"},
 		"cache-control":             {"max-age=0"},
-		"sec-ch-ua":                 {`" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"`},
-		"sec-ch-ua-mobile":          {"?0"},
 		"upgrade-insecure-requests": {"1"},
 		"origin":                    {"https://www.origin.com"},
 		"content-type":              {"application/x-www-form-urlencoded"},
@@ -78,7 +76,7 @@ func Init(client http.Client, key string, debug bool) (scraper Scraper) {
 		"referer":                   {"https://www.referer.com/"},
 		"accept-encoding":           {"gzip, deflate, br"},
 		"accept-language":           {"en-US,en;q=0.9"},
-		http.HeaderOrderKey:         {"connection", "cache-control", "sec-ch-ua", "sec-ch-ua-mobile", "upgrade-insecure-requests", "origin", "content-type", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language"},
+		http.HeaderOrderKey:         {"content-length", "pragma", "cache-control", "upgrade-insecure-requests", "origin", "content-type", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language"},
 		http.PHeaderOrderKey:        {":method", ":authority", ":scheme", ":path"},
 	}
 
