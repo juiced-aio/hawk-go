@@ -11,7 +11,7 @@ Example:
 import (
     "github.com/useflyent/fhttp/cookiejar"
     hawk "github.com/juiced-aio/hawk-go"
-    http "https://github.com/useflyent/fhttp"
+    http "github.com/useflyent/fhttp"
 )
 
 // Client has to be from fhttp and up to CloudFlare's standards, this can include ja3 fingerprint/http2 settings.
