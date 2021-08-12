@@ -27,7 +27,7 @@ scraper.CaptchaFunction = func(originalURL string, siteKey string) (string, erro
   return "", nil
 }
 
-req, _: = http.NewRequest("GET", "https://www.nakedcph.com/en/product/9468/nike-sportswear-dunk-low-disrupt-ck6654-001", nil)
+req, _ := http.NewRequest("GET", "https://www.nakedcph.com/en/product/9468/nike-sportswear-dunk-low-disrupt-ck6654-001", nil)
 
 req.Header = http.Header{
   "sec-ch-ua":                 {`"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"`},
