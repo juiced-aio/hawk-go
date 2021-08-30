@@ -19,7 +19,7 @@ import (
 // Client also will need a cookie jar.
 cookieJar, _: = cookiejar.New(nil)
 client.Jar = cookieJar
-scraper: = hawk.Init(client, "YOUR_KEY_HERE", true)
+scraper: = hawk.CFInit(client, "YOUR_KEY_HERE", true)
 
 // You will have to create your own function if you want to solve captchas.
 scraper.CaptchaFunction = func(originalURL string, siteKey string) (string, error) {
