@@ -17,7 +17,7 @@ import (
 	http "github.com/useflyent/fhttp"
 )
 
-func Init(client http.Client, key string, debug bool) (scraper Scraper) {
+func CFInit(client http.Client, key string, debug bool) (scraper Scraper) {
 	// Config Vars
 	scraper.Script = "https://%v/cdn-cgi/challenge-platform/h/g/orchestrate/jsch/v1"
 	scraper.CaptchaScript = "https://%v/cdn-cgi/challenge-platform/h/g/orchestrate/captcha/v1"
@@ -146,6 +146,8 @@ func (scraper *Scraper) Solve() (*http.Response, error) {
 					scraper.HandleLoopError(errFormat, err)
 					continue
 				}
+				defer resp.Body.Close()
+
 				scraper.InitScript = resp
 				break
 			}
@@ -231,6 +233,8 @@ func (scraper *Scraper) ChallengeInitiationPayload() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer challengePayload.Body.Close()
+
 			var challengePayloadResponse apiResponse
 			err = ReadAndUnmarshalBody(challengePayload.Body, &challengePayloadResponse)
 			if err != nil {
@@ -302,6 +306,7 @@ func (scraper *Scraper) InitiateCloudflare() (*http.Response, error) {
 					scraper.HandleLoopError(errFormat, err)
 					continue
 				}
+				defer scraper.ChallengePayload.Body.Close()
 
 				scraper.InitChallengeRetries = 0
 
@@ -360,6 +365,8 @@ func (scraper *Scraper) SolvePayload() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer cc.Body.Close()
+
 			var solvePayloadResponse apiResponse
 			err = ReadAndUnmarshalBody(cc.Body, &solvePayloadResponse)
 			if err != nil {
@@ -423,6 +430,7 @@ func (scraper *Scraper) SendMainPayload() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer scraper.MainPayloadResponse.Body.Close()
 
 			scraper.SubmitChallengeRetries = 0
 
@@ -469,6 +477,8 @@ func (scraper *Scraper) GetChallengeResult() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer ee.Body.Close()
+
 			err = ReadAndUnmarshalBody(ee.Body, &scraper.FinalApi)
 			if err != nil {
 				scraper.HandleLoopError(errFormat, err)
@@ -559,6 +569,7 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer final.Body.Close()
 
 			scraper.SubmitFinalChallengeRetries = 0
 
@@ -585,7 +596,9 @@ func (scraper *Scraper) SubmitChallenge() (*http.Response, error) {
 						scraper.HandleLoopError(errFormat, err)
 						continue
 					}
-					newScraper := Init(scraper.Client, scraper.Key, scraper.Debug)
+					defer weirdGetReq.Body.Close()
+
+					newScraper := CFInit(scraper.Client, scraper.Key, scraper.Debug)
 					newScraper.Captcha = true
 					newScraper.OriginalRequest = weirdGetReq
 					newScraper.Domain = scraper.OriginalRequest.Request.URL.Host
@@ -643,6 +656,8 @@ func (scraper *Scraper) HandleRerun() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer alternative.Body.Close()
+
 			var handleRerunResponse apiResponse
 			err = ReadAndUnmarshalBody(alternative.Body, &handleRerunResponse)
 			if err != nil {
@@ -713,6 +728,8 @@ func (scraper *Scraper) HandleCaptcha() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer ff.Body.Close()
+
 			var handleCaptchaResponse apiResponse
 			err = ReadAndUnmarshalBody(ff.Body, &handleCaptchaResponse)
 			if err != nil {
@@ -750,6 +767,7 @@ func (scraper *Scraper) HandleCaptcha() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer gg.Body.Close()
 
 			errFormat = "Second captcha API call error: %v"
 
@@ -773,6 +791,7 @@ func (scraper *Scraper) HandleCaptcha() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer hh.Body.Close()
 
 			handleCaptchaResponse = apiResponse{}
 			err = ReadAndUnmarshalBody(hh.Body, &handleCaptchaResponse)
@@ -857,6 +876,7 @@ func (scraper *Scraper) SubmitCaptcha() (*http.Response, error) {
 				scraper.HandleLoopError(errFormat, err)
 				continue
 			}
+			defer final.Body.Close()
 
 			scraper.SubmitCaptchaRetries = 0
 
@@ -891,6 +911,8 @@ func (scraper *Scraper) InitiateScript() (*http.Response, error) {
 	if err != nil {
 		return scraper.OriginalRequest, err
 	}
+	defer resp.Body.Close()
+
 	scraper.InitScript = resp
 
 	return scraper.GetPayloadFromAPI()
@@ -916,6 +938,8 @@ func (scraper *Scraper) GetPayloadFromAPI() (*http.Response, error) {
 	if err != nil {
 		return scraper.OriginalRequest, err
 	}
+	defer resp.Body.Close()
+
 	var p1Response apiResponse
 	err = ReadAndUnmarshalBody(resp.Body, &p1Response)
 	if err != nil {
@@ -938,6 +962,8 @@ func (scraper *Scraper) SubmitFingerprintChallenge() (*http.Response, error) {
 	if err != nil {
 		return scraper.OriginalRequest, err
 	}
+	defer result.Body.Close()
+
 	if result.StatusCode == 429 {
 		return scraper.OriginalRequest, errors.New("FP DATA declined")
 	} else if result.StatusCode == 404 {

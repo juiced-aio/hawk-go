@@ -11,20 +11,38 @@ import (
 	"strings"
 	"time"
 
+	"net/http"
+
 	"github.com/anaskhan96/soup"
-	http "github.com/useflyent/fhttp"
+	fhttp "github.com/useflyent/fhttp"
 )
 
-func ReadAndCopyBody(response *http.Response) ([]byte, error) {
+func ReadAndCopyBody(r interface{}) ([]byte, error) {
+	var bodyReadCloser io.ReadCloser
+	switch r.(type) {
+	case *fhttp.Response:
+		bodyReadCloser = r.(*fhttp.Response).Body
+	case *http.Response:
+		bodyReadCloser = r.(*http.Response).Body
+	}
+
 	var body []byte
 	var err error
 	var b bytes.Buffer
-	t := io.TeeReader(response.Body, &b)
+	t := io.TeeReader(bodyReadCloser, &b)
 	body, err = ioutil.ReadAll(t)
 	if err != nil {
 		return body, err
 	}
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+	newReadCloser := ioutil.NopCloser(bytes.NewBuffer(body))
+	switch r.(type) {
+	case *fhttp.Response:
+		r.(*fhttp.Response).Body = newReadCloser
+	case *http.Response:
+		r.(*http.Response).Body = newReadCloser
+	}
+
 	return body, err
 }
 
@@ -35,6 +53,11 @@ func ReadAndUnmarshalBody(respBody io.ReadCloser, x interface{}) error {
 	}
 	err = json.Unmarshal(body, &x)
 	return err
+}
+
+func ReadAndCloseBody(respBody io.ReadCloser) ([]byte, error) {
+	defer respBody.Close()
+	return ioutil.ReadAll(respBody)
 }
 
 func CreateParams(paramsLong map[string]string) string {
@@ -59,7 +82,7 @@ func CheckForCaptcha(body string) bool {
 	return false
 }
 
-func IsNewIUAMChallenge(response *http.Response) bool {
+func IsNewIUAMChallenge(response *fhttp.Response) bool {
 	body, err := ReadAndCopyBody(response)
 	if err != nil {
 		return false
@@ -78,7 +101,7 @@ func IsNewIUAMChallenge(response *http.Response) bool {
 
 }
 
-func IsFingerprintChallenge(response *http.Response) bool {
+func IsFingerprintChallenge(response *fhttp.Response) bool {
 	if response.StatusCode == 429 {
 		body, err := ReadAndCopyBody(response)
 		if err != nil {
@@ -92,7 +115,7 @@ func IsFingerprintChallenge(response *http.Response) bool {
 	return false
 }
 
-func IsNewCaptchaChallenge(response *http.Response) bool {
+func IsNewCaptchaChallenge(response *fhttp.Response) bool {
 	body, err := ReadAndCopyBody(response)
 	if err != nil {
 		return false
